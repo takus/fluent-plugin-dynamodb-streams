@@ -102,8 +102,8 @@ class DynamoDBStreamsInputTest < Test::Unit::TestCase
     d.run do
       sleep 1
       put_records([
-        {key: "k1", timestamp: time_ms},
-        {key: "k2", timestamp: time_ms},
+        {key:"k1", timestamp:time_ms, bool:true, hash:{k:"v"}, l:[{k:"v"}], ns:[1,2,3], ss:["1","2","3"]},
+        {key:"k2", timestamp:time_ms},
       ])
       sleep 1
     end
@@ -112,23 +112,11 @@ class DynamoDBStreamsInputTest < Test::Unit::TestCase
 
     assert_equal(2, emits.size)
 
-    # Expected output:
-    # {
-    #   "aws_region"=>"ddblocal",
-    #   "dynamodb"=>
-    #    {"keys"=>{"key"=>"k2"},
-    #     "new_image"=>{"key"=>"k2", "timestamp"=>1442225594551},
-    #     "sequence_number"=>"000000000000000000081",
-    #     "size_bytes"=>27,
-    #     "stream_view_type"=>"NEW_AND_OLD_IMAGES"},
-    #   "event_id"=>"a5d8b042-e83f-40a6-8e58-580a10d976f3",
-    #   "event_name"=>"INSERT",
-    #   "event_source"=>"aws:dynamodb",
-    #   "event_version"=>"1.0"
-    # }
-
     assert_equal("test", emits[0][0])
-    assert_equal({"key" => "k1", "timestamp" => time_ms}, emits[0][2]["dynamodb"]["new_image"])
+    assert_equal(
+      {"key" => "k1", "timestamp" => time_ms, "bool" => true, "hash" => {"k" => "v"}, "l" => [{"k" => "v"}], "ns" => [1,2,3], "ss" => ["1","2","3"]},
+      emits[0][2]["dynamodb"]["new_image"],
+    )
 
     assert_equal("test", emits[1][0])
     assert_equal({"key" => "k2", "timestamp" => time_ms}, emits[1][2]["dynamodb"]["new_image"])
@@ -140,7 +128,7 @@ class DynamoDBStreamsInputTest < Test::Unit::TestCase
     assert_equal("INSERT", emits[0][2]["event_name"])
     assert_true(emits[0][2]["dynamodb"]["sequence_number"].size > 0)
     assert_equal("NEW_AND_OLD_IMAGES", emits[0][2]["dynamodb"]["stream_view_type"])
-    assert_equal(27, emits[0][2]["dynamodb"]["size_bytes"])
+    assert_equal(78, emits[0][2]["dynamodb"]["size_bytes"])
 
     delete_table
   end
