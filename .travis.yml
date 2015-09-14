@@ -1,0 +1,11 @@
+language: ruby
+rvm:
+  - 2.2
+  - 2.1
+  - 2.0.0
+  - 1.9.3
+before_script:
+  - bundle exec dynamodb-local -inMemory &
+script:
+  - bundle exec rake test
+  - bundle exec rake build
