@@ -6,6 +6,7 @@ rvm:
   - 1.9.3
 before_script:
   - bundle exec dynamodb-local -inMemory &
+  - sleep 5
 script:
   - bundle exec rake test
   - bundle exec rake build
