@@ -6,6 +6,30 @@
 
 Fluentd input plugin for [AWS DynamoDB Streams](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Streams.html).
 
+## Preparation
+
+Create IAM user with a policy like the following.
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetRecords",
+        "dynamodb:GetShardIterator",
+        "dynamodb:DescribeStream",
+        "dynamodb:ListStreams"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+Or define `aws_key_id` and `aws_sec_key` in your config file.
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -68,3 +92,8 @@ Or install it yourself as:
   }
 }
 ```
+
+## TODO
+
+- store sequence number to DynamoDB
+- fetch records from each shards concurrently

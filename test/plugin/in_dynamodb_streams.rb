@@ -38,9 +38,11 @@ class DynamoDBStreamsInputTest < Test::Unit::TestCase
 
     d = create_driver(
       %[
-        tag        test
-        aws_region ddblocal
-        stream_arn #{@stream_arn}
+        tag         test
+        aws_key_id  dummy
+        aws_sec_key dummy
+        aws_region  ddblocal
+        stream_arn  #{@stream_arn}
       ]
     )
 

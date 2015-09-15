@@ -13,6 +13,8 @@ module DynamoDBStreamsTestHelper
   def dynamodb
     @ddb ||= Aws::DynamoDB::Client.new(
       region: 'ap-northeast-1',
+      access_key_id: 'dummy',
+      secret_access_key: 'dummy',
       endpoint: 'http://localhost:8000',
     )
   end

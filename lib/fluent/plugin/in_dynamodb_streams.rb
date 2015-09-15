@@ -94,7 +94,11 @@ module Fluent
           })
 
           resp.records.each do |r|
-            emit(r)
+            begin
+              emit(r)
+            rescue => e
+              log.error "dynamodb-streams: error has occoured.", error: e.message, error_class: e.class
+            end
             save_sequence(s.shard_id, r.dynamodb.sequence_number)
           end
         end
@@ -132,26 +136,22 @@ module Fluent
     end
 
     def emit(r)
-      begin
-        record = {
-          "aws_region" => r.aws_region,
-          "event_source" => r.event_source,
-          "event_version" => r.event_version,
-          "event_id" => r.event_id,
-          "event_name" => r.event_name,
-          "dynamodb" => {
-            "stream_view_type" => r.dynamodb.stream_view_type,
-            "sequence_number" => r.dynamodb.sequence_number,
-            "size_bytes" => r.dynamodb.size_bytes,
-          }
+      record = {
+        "aws_region" => r.aws_region,
+        "event_source" => r.event_source,
+        "event_version" => r.event_version,
+        "event_id" => r.event_id,
+        "event_name" => r.event_name,
+        "dynamodb" => {
+          "stream_view_type" => r.dynamodb.stream_view_type,
+          "sequence_number" => r.dynamodb.sequence_number,
+          "size_bytes" => r.dynamodb.size_bytes,
         }
-        record["dynamodb"]["keys"] = dynamodb_to_hash(r.dynamodb.keys) if r.dynamodb.keys
-        record["dynamodb"]["old_image"] = dynamodb_to_hash(r.dynamodb.old_image) if r.dynamodb.old_image
-        record["dynamodb"]["new_image"] = dynamodb_to_hash(r.dynamodb.new_image) if r.dynamodb.new_image
-        router.emit(@tag, Time.now.to_i, record)
-      rescue => e
-        log.error "dynamodb-streams: error has occoured.", error: e.message, error_class: e.class
-      end
+      }
+      record["dynamodb"]["keys"] = dynamodb_to_hash(r.dynamodb.keys) if r.dynamodb.keys
+      record["dynamodb"]["old_image"] = dynamodb_to_hash(r.dynamodb.old_image) if r.dynamodb.old_image
+      record["dynamodb"]["new_image"] = dynamodb_to_hash(r.dynamodb.new_image) if r.dynamodb.new_image
+      router.emit(@tag, Time.now.to_i, record)
     end
 
     def dynamodb_to_hash(hash)
