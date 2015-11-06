@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "fluent-plugin-dynamodb-streams"
-  spec.version       = "0.0.1"
+  spec.version       = "0.0.2"
   spec.authors       = ["Takumi Sakamoto"]
   spec.email         = ["takumi.saka@gmail.com"]
   spec.summary       = %q{Amazon DynamoDB Streams input plugin for Fluentd}
