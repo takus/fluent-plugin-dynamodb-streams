@@ -51,6 +51,8 @@ module Fluent
       options[:endpoint] = @stream_endpoint
       @client = Aws::DynamoDBStreams::Client.new(options)
 
+      @iterator = {}
+
       @running = true
       @thread = Thread.new(&method(:run))
     end
@@ -73,23 +75,10 @@ module Fluent
             next
           end
 
-          if load_sequence(s.shard_id)
-            iterator = @client.get_shard_iterator({
-              stream_arn: @stream_arn,
-              shard_id: s.shard_id,
-              shard_iterator_type: "AFTER_SEQUENCE_NUMBER",
-              sequence_number: load_sequence(s.shard_id),
-            }).shard_iterator
-          else
-            iterator = @client.get_shard_iterator({
-              stream_arn: @stream_arn,
-              shard_id: s.shard_id,
-              shard_iterator_type: "TRIM_HORIZON",
-            }).shard_iterator
-          end
+          set_iterator(s.shard_id) unless @iterator.key? s.shard_id
 
           resp = @client.get_records({
-            shard_iterator: iterator,
+            shard_iterator: @iterator[s.shard_id],
             limit: @fetch_size,
           })
 
@@ -101,7 +90,30 @@ module Fluent
             end
             save_sequence(s.shard_id, r.dynamodb.sequence_number)
           end
+
+          if resp.next_shard_iterator
+            @iterator[s.shard_id] = resp.next_shard_iterator
+          else
+            @iterator.delete s.shard_id
+          end
         end
+      end
+    end
+
+    def set_iterator(shard_id)
+      if load_sequence(shard_id)
+        @iterator[shard_id] = @client.get_shard_iterator({
+          stream_arn: @stream_arn,
+          shard_id: shard_id,
+          shard_iterator_type: "AFTER_SEQUENCE_NUMBER",
+          sequence_number: load_sequence(shard_id),
+        }).shard_iterator
+      else
+        @iterator[shard_id] = @client.get_shard_iterator({
+          stream_arn: @stream_arn,
+          shard_id: shard_id,
+          shard_iterator_type: "TRIM_HORIZON",
+        }).shard_iterator
       end
     end
 
