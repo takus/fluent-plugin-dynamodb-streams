@@ -44,7 +44,7 @@ module Fluent
       unless @pos_file
         @pos_memory = {}
       end
-        
+
       options = {}
       options[:region] = @aws_region if @aws_region
       options[:credentials] = Aws::Credentials.new(@aws_key_id, @aws_sec_key) if @aws_key_id && @aws_sec_key
@@ -66,10 +66,7 @@ module Fluent
       while @running
         sleep @fetch_interval
 
-        @client.describe_stream({
-          stream_arn: @stream_arn
-        }).stream_description.shards.each do |s|
-
+        get_shards.each do |s|
           if s.sequence_number_range.ending_sequence_number
             remove_sequence(s.shard_id)
             next
@@ -98,6 +95,27 @@ module Fluent
           end
         end
       end
+    end
+
+    def get_shards()
+      shards = []
+
+      last_shard_id = nil
+      begin
+        s = @client.describe_stream({
+          stream_arn: @stream_arn,
+          exclusive_start_shard_id: last_shard_id,
+        }).stream_description
+
+        shards = shards + s.shards
+
+        if s.last_evaluated_shard_id == last_shard_id then
+          break
+        end
+        last_shard_id = s.last_evaluated_shard_id
+      end while last_shard_id
+
+      shards
     end
 
     def set_iterator(shard_id)
