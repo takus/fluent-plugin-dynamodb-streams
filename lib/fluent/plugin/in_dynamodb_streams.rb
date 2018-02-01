@@ -1,3 +1,5 @@
+require 'fluent/input'
+
 module Fluent
   class DynamoDBStreamsInput < Input
     Fluent::Plugin.register_input('dynamodb_streams', self)
