@@ -17,8 +17,9 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "fluentd", [">= 0.10.58", "< 2"]
-  spec.add_dependency "aws-sdk", '~> 2'
+  spec.add_dependency "fluentd", [">= 0.14.11", "< 2"]
+  spec.add_dependency "aws-sdk-dynamodb", '~> 1'
+  spec.add_dependency "aws-sdk-dynamodbstreams", '~> 1'
 
   spec.add_development_dependency "bundler", "~> 1.7"
   spec.add_development_dependency "rake", "~> 10.0"

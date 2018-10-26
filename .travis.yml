@@ -1,12 +1,15 @@
 language: ruby
 rvm:
+  - 2.5.3
+  - 2.4
+  - 2.3
   - 2.2
   - 2.1
-  - 2.0.0
-  - 1.9.3
 before_script:
   - bundle exec dynamodb-local -inMemory &
   - sleep 5
 script:
   - bundle exec rake test
   - bundle exec rake build
+after_script:
+  - '[ ${TRAVIS_EVENT_TYPE} != "pull_request" ] && [ ${TRAVIS_BRANCH} = "master" ] && bundle exec codeclimate-test-reporter'
