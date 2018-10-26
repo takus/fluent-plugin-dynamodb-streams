@@ -10,7 +10,7 @@ module Fluent
 
     def initialize
       super
-      require 'aws-sdk'
+      require 'aws-sdk-dynamodbstreams'
       require 'bigdecimal'
     end
 
