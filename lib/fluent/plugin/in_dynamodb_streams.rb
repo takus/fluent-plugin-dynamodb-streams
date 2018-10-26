@@ -1,3 +1,4 @@
+require 'fluent/input'
 module Fluent
   class DynamoDBStreamsInput < Input
     Fluent::Plugin.register_input('dynamodb_streams', self)
@@ -9,7 +10,7 @@ module Fluent
 
     def initialize
       super
-      require 'aws-sdk'
+      require 'aws-sdk-dynamodbstreams'
       require 'bigdecimal'
     end
 
