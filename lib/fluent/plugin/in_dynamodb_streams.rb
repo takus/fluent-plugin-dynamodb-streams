@@ -1,17 +1,15 @@
-require 'fluent/input'
-module Fluent
+require 'aws-sdk-dynamodbstreams'
+require 'bigdecimal'
+require 'fluent/plugin/input'
+
+module Fluent::Plugin
   class DynamoDBStreamsInput < Input
     Fluent::Plugin.register_input('dynamodb_streams', self)
 
-    # Define `router` method of v0.12 to support v0.10 or earlier
-    unless method_defined?(:router)
-      define_method("router") { Fluent::Engine }
-    end
+    helpers :timer
 
     def initialize
       super
-      require 'aws-sdk-dynamodbstreams'
-      require 'bigdecimal'
     end
 
     config_param :tag, :string
@@ -54,46 +52,40 @@ module Fluent
 
       @iterator = {}
 
-      @running = true
-      @thread = Thread.new(&method(:run))
+      timer_execute(:in_dynamodb_streams_timer, @fetch_interval, &method(:run))
     end
 
     def shutdown
-      @running = false
-      @thread.join
+      super
     end
 
     def run
-      while @running
-        sleep @fetch_interval
+      get_shards.each do |s|
+        if s.sequence_number_range.ending_sequence_number
+          remove_sequence(s.shard_id)
+          next
+        end
 
-        get_shards.each do |s|
-          if s.sequence_number_range.ending_sequence_number
-            remove_sequence(s.shard_id)
-            next
+        set_iterator(s.shard_id) unless @iterator.key? s.shard_id
+
+        resp = @client.get_records({
+          shard_iterator: @iterator[s.shard_id],
+          limit: @fetch_size,
+        })
+
+        resp.records.each do |r|
+          begin
+            emit(r)
+          rescue => e
+            log.error "dynamodb-streams: error has occoured.", error: e.message, error_class: e.class
           end
+          save_sequence(s.shard_id, r.dynamodb.sequence_number)
+        end
 
-          set_iterator(s.shard_id) unless @iterator.key? s.shard_id
-
-          resp = @client.get_records({
-            shard_iterator: @iterator[s.shard_id],
-            limit: @fetch_size,
-          })
-
-          resp.records.each do |r|
-            begin
-              emit(r)
-            rescue => e
-              log.error "dynamodb-streams: error has occoured.", error: e.message, error_class: e.class
-            end
-            save_sequence(s.shard_id, r.dynamodb.sequence_number)
-          end
-
-          if resp.next_shard_iterator
-            @iterator[s.shard_id] = resp.next_shard_iterator
-          else
-            @iterator.delete s.shard_id
-          end
+        if resp.next_shard_iterator
+          @iterator[s.shard_id] = resp.next_shard_iterator
+        else
+          @iterator.delete s.shard_id
         end
       end
     end
@@ -182,7 +174,7 @@ module Fluent
       record["dynamodb"]["keys"] = dynamodb_to_hash(r.dynamodb.keys) if r.dynamodb.keys
       record["dynamodb"]["old_image"] = dynamodb_to_hash(r.dynamodb.old_image) if r.dynamodb.old_image
       record["dynamodb"]["new_image"] = dynamodb_to_hash(r.dynamodb.new_image) if r.dynamodb.new_image
-      router.emit(@tag, Time.now.to_i, record)
+      router.emit(@tag, Fluent::Engine.now, record)
     end
 
     def dynamodb_to_hash(hash)

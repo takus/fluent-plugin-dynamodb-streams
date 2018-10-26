@@ -46,16 +46,14 @@ class DynamoDBStreamsInputTest < Test::Unit::TestCase
       ]
     )
 
-    d.run do
-      sleep 1
+    d.run(expect_emits: 2) do
       put_records([
         {key:"k1", timestamp:time_ms, bool:true, hash:{k:"v"}, l:[{k:"v"}], ns:[1,2,3], ss:["1","2","3"]},
         {key:"k2", timestamp:time_ms},
       ])
-      sleep 1
     end
 
-    emits = d.emits
+    emits = d.events
 
     assert_equal(2, emits.size)
 
@@ -82,7 +80,7 @@ class DynamoDBStreamsInputTest < Test::Unit::TestCase
 
   private
   def create_driver(conf = CONFIG)
-    Fluent::Test::InputTestDriver.new(Fluent::DynamoDBStreamsInput).configure(conf)
+    Fluent::Test::Driver::Input.new(Fluent::Plugin::DynamoDBStreamsInput).configure(conf)
   end
 
 end
